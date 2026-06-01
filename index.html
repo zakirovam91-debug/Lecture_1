@@ -202,7 +202,6 @@
     <p>Введите фамилию и имя, чтобы пройти задания по лекции и в конце отправить ответы преподавателю.</p>
     <input type="text" id="gateName" placeholder="Фамилия и имя" autocomplete="off">
     <button class="btn primary" id="gateGo">Начать →</button>
-    <div class="gate-teacher">Преподаватель? <a id="gateTeacher">Открыть результаты</a></div>
   </div>
 </div>
 
@@ -439,11 +438,6 @@ document.getElementById('gateGo').addEventListener('click',()=>{
   enterApp();
 });
 document.getElementById('gateName').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('gateGo').click();});
-document.getElementById('gateTeacher').addEventListener('click',()=>{
-  document.getElementById('tabDash').style.display='';
-  enterApp();
-  goTab('dash');
-});
 
 /* ===================== QUIZ ===================== */
 let qi=0, qscore=0, qlocked=false, wrongTopics=[];
