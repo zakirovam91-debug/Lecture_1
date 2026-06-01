@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Интерактив к лекции «Введение в ИИ»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0a2342;
+    --navy-2:#14385f;
+    --navy-soft:#1d4e89;
+    --amber:#f0a500;
+    --amber-deep:#d98e00;
+    --paper:#f4f1ea;
+    --card:#ffffff;
+    --ink:#0a2342;
+    --muted:#5b6b7d;
+    --green:#1f9d6b;
+    --red:#d64545;
+    --line:#dfe3ea;
+    --shadow:0 14px 40px -18px rgba(10,35,66,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:"Golos Text",sans-serif;-webkit-font-smoothing:antialiased}
+  body{min-height:100vh;position:relative;overflow-x:hidden}
+  /* diagonal corner echoes from the deck */
+  body::before,body::after{content:"";position:fixed;z-index:0;pointer-events:none}
+  body::before{top:-120px;left:-120px;width:320px;height:320px;background:var(--navy);transform:rotate(45deg);opacity:.06}
+  body::after{bottom:-140px;right:-140px;width:360px;height:360px;background:var(--navy);transform:rotate(45deg);opacity:.05}
+  .wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:28px 18px 80px}
+
+  header.head{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 70%);
+    color:#fff;border-radius:20px;padding:30px 28px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  header.head::after{content:"AI";position:absolute;right:18px;bottom:-22px;font-family:"Unbounded";font-weight:800;font-size:120px;color:rgba(255,255,255,.06);letter-spacing:-4px}
+  .eyebrow{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--amber);font-weight:600}
+  header.head h1{font-family:"Unbounded";font-weight:800;font-size:clamp(24px,4.4vw,38px);line-height:1.08;margin:10px 0 8px;max-width:680px}
+  header.head p{color:#c7d4e6;max-width:560px;font-size:15px}
+
+  nav.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 18px}
+  nav.tabs button{
+    font-family:"Golos Text";font-size:14px;font-weight:600;cursor:pointer;
+    border:1.5px solid var(--line);background:var(--card);color:var(--muted);
+    padding:11px 16px;border-radius:999px;transition:.18s;display:flex;align-items:center;gap:7px;
+  }
+  nav.tabs button .n{font-family:"Unbounded";font-weight:600;font-size:12px}
+  nav.tabs button:hover{border-color:var(--navy-soft);color:var(--navy)}
+  nav.tabs button.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  nav.tabs button.active .n{color:var(--amber)}
+
+  .panel{display:none;animation:fade .35s ease}
+  .panel.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:var(--shadow)}
+  .lead{color:var(--muted);font-size:15px;margin-bottom:6px}
+
+  .section-title{font-family:"Unbounded";font-weight:600;font-size:20px;display:flex;align-items:center;gap:10px}
+  .section-title .dot{width:11px;height:11px;border-radius:3px;background:var(--amber);transform:rotate(45deg)}
+
+  /* ---- progress ---- */
+  .qbar{height:6px;background:var(--line);border-radius:999px;overflow:hidden;margin:18px 0 6px}
+  .qbar i{display:block;height:100%;background:linear-gradient(90deg,var(--navy-soft),var(--amber));width:0;transition:.4s}
+  .qmeta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:18px}
+  .qmeta b{color:var(--navy)}
+
+  .question{font-size:18px;font-weight:600;line-height:1.35;margin-bottom:18px}
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{
+    text-align:left;border:1.5px solid var(--line);background:#fbfcfe;border-radius:12px;
+    padding:14px 16px;font-size:15px;font-family:"Golos Text";cursor:pointer;transition:.15s;display:flex;gap:12px;align-items:flex-start;color:var(--ink)
+  }
+  .opt .mk{flex:0 0 24px;height:24px;border-radius:7px;border:1.5px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--muted);transition:.15s}
+  .opt:hover:not(.locked){border-color:var(--navy-soft);background:#fff}
+  .opt.correct{border-color:var(--green);background:#eafaf2}
+  .opt.correct .mk{background:var(--green);color:#fff;border-color:var(--green)}
+  .opt.wrong{border-color:var(--red);background:#fdeeee}
+  .opt.wrong .mk{background:var(--red);color:#fff;border-color:var(--red)}
+  .opt.locked{cursor:default}
+
+  .explain{margin-top:16px;border-left:3px solid var(--amber);background:#fff8e9;padding:13px 16px;border-radius:0 10px 10px 0;font-size:14.5px;color:#4a4030;display:none}
+  .explain.show{display:block}
+  .explain b{color:var(--navy)}
+
+  .row-end{display:flex;justify-content:flex-end;margin-top:18px}
+  .btn{font-family:"Golos Text";font-weight:600;font-size:15px;cursor:pointer;border:none;border-radius:12px;padding:13px 24px;transition:.15s}
+  .btn.primary{background:var(--navy);color:#fff}
+  .btn.primary:hover{background:var(--navy-2)}
+  .btn.amber{background:var(--amber);color:var(--navy)}
+  .btn.amber:hover{background:var(--amber-deep)}
+  .btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--muted)}
+  .btn.ghost:hover{border-color:var(--navy-soft);color:var(--navy)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  /* ---- result screen ---- */
+  .scorewrap{text-align:center;padding:14px 0}
+  .scorebig{font-family:"Unbounded";font-weight:800;font-size:54px;color:var(--navy);line-height:1}
+  .scorebig span{color:var(--amber)}
+  .scoremsg{font-size:17px;font-weight:600;margin:10px 0 4px}
+  .review{margin-top:18px;text-align:left}
+  .review h4{font-size:14px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+  .chip{display:inline-block;background:#fdeeee;color:var(--red);border:1px solid #f3c9c9;border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;margin:0 6px 6px 0}
+  .chip.ok{background:#eafaf2;color:var(--green);border-color:#bfe9d4}
+
+  /* ---- sorting game ---- */
+  .pool{display:flex;flex-wrap:wrap;gap:9px;min-height:48px;padding:12px;border:1.5px dashed var(--line);border-radius:14px;background:#fbfcfe;margin-bottom:18px}
+  .pool:empty::after{content:"Все примеры распределены 👇";color:var(--muted);font-size:13px}
+  .ex{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:9px 13px;font-size:13.5px;cursor:pointer;transition:.15s;line-height:1.25;max-width:100%}
+  .ex:hover{border-color:var(--navy-soft)}
+  .ex.picked{border-color:var(--amber);background:#fff8e9;box-shadow:0 0 0 3px rgba(240,165,0,.18)}
+  .ex.ok{border-color:var(--green);background:#eafaf2}
+  .ex.bad{border-color:var(--red);background:#fdeeee}
+  .zones{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .zone{border:1.5px solid var(--line);border-radius:14px;background:#fff;padding:13px;min-height:150px;transition:.15s}
+  .zone.target{border-color:var(--amber);box-shadow:0 0 0 3px rgba(240,165,0,.14);cursor:pointer}
+  .zone h5{font-size:13px;font-family:"Unbounded";font-weight:600;color:var(--navy);margin-bottom:4px}
+  .zone .hint{font-size:11.5px;color:var(--muted);margin-bottom:10px}
+  .zone .drop{display:flex;flex-direction:column;gap:7px}
+  @media(max-width:640px){.zones{grid-template-columns:1fr}.zone{min-height:auto}}
+
+  /* ---- feedback form ---- */
+  label.fld{display:block;margin:16px 0 7px;font-weight:600;font-size:14.5px}
+  label.fld .req{color:var(--amber);font-weight:700}
+  .stars{display:flex;gap:8px}
+  .star{font-size:30px;cursor:pointer;color:#d7dde6;transition:.12s;line-height:1;user-select:none}
+  .star:hover,.star.on{color:var(--amber);transform:scale(1.06)}
+  select,textarea,input[type=text]{width:100%;font-family:"Golos Text";font-size:15px;border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;background:#fbfcfe;color:var(--ink);resize:vertical}
+  select:focus,textarea:focus,input[type=text]:focus{outline:none;border-color:var(--navy-soft);background:#fff}
+  textarea{min-height:70px}
+  .note{font-size:12.5px;color:var(--muted);margin-top:6px}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(120px);background:var(--navy);color:#fff;padding:14px 22px;border-radius:12px;font-weight:600;box-shadow:var(--shadow);transition:.4s;z-index:50}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+
+  /* ---- dashboard ---- */
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 22px}
+  @media(max-width:560px){.stat-grid{grid-template-columns:1fr}}
+  .stat{background:linear-gradient(135deg,var(--navy),var(--navy-2));color:#fff;border-radius:14px;padding:18px}
+  .stat .big{font-family:"Unbounded";font-weight:800;font-size:30px}
+  .stat .lbl{font-size:12.5px;color:#bcd0e8;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+  .stat .big span{color:var(--amber);font-size:18px}
+  .barline{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13.5px}
+  .barline .k{flex:0 0 130px;color:var(--muted)}
+  .barline .t{flex:1;height:22px;background:var(--line);border-radius:6px;overflow:hidden}
+  .barline .t i{display:block;height:100%;background:linear-gradient(90deg,var(--navy-soft),var(--amber));border-radius:6px}
+  .barline .v{flex:0 0 28px;text-align:right;font-weight:700;color:var(--navy)}
+  .resp{background:#fbfcfe;border:1px solid var(--line);border-left:3px solid var(--navy-soft);border-radius:0 10px 10px 0;padding:11px 14px;margin-bottom:9px;font-size:14px;line-height:1.4}
+  .resp .meta{font-size:11.5px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+  .subhead{font-family:"Unbounded";font-weight:600;font-size:15px;margin:20px 0 10px;color:var(--navy)}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:14.5px}
+  .modebadge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;margin-bottom:14px}
+  .modebadge.live{background:#eafaf2;color:var(--green)}
+  .modebadge.local{background:#fff8e9;color:var(--amber-deep)}
+  .dash-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+
+  /* ---- DIKW exercise ---- */
+  details.example{border:1px solid #f0dca8;border-radius:12px;padding:2px 14px;margin:8px 0 10px;background:#fff8e9}
+  details.example summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--amber-deep);padding:10px 0;list-style:none}
+  details.example summary::-webkit-details-marker{display:none}
+  details.example summary::before{content:"▸ ";}
+  details.example[open] summary::before{content:"▾ ";}
+  details.example .ex-body{font-size:13.5px;color:#4a4030;padding:2px 0 12px;line-height:1.55}
+  details.example .ex-body p{margin:5px 0}
+  .dikw-step{border-left:4px solid var(--line);background:#fbfcfe;border-radius:0 12px 12px 0;padding:12px 14px;margin:12px 0}
+  .dikw-lbl{font-weight:700;font-size:14px;color:var(--navy);margin-bottom:8px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .dikw-lbl .num{font-family:"Unbounded";font-weight:600;font-size:12px;color:var(--amber-deep)}
+  .dikw-lbl em{font-weight:500;font-size:12.5px;color:var(--muted);font-style:normal}
+  .dikw-step textarea{min-height:52px;background:#fff}
+
+  /* ---- start gate ---- */
+  .gate{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,var(--navy),var(--navy-2));display:grid;place-items:center;padding:22px;transition:opacity .4s,visibility .4s}
+  .gate.hide{opacity:0;visibility:hidden}
+  .gate::after{content:"AI";position:absolute;right:6vw;bottom:2vh;font-family:"Unbounded";font-weight:800;font-size:160px;color:rgba(255,255,255,.05);letter-spacing:-6px}
+  .gate-card{background:var(--card);border-radius:22px;padding:36px 30px;max-width:440px;width:100%;box-shadow:var(--shadow);text-align:center;position:relative;z-index:1}
+  .gate-card .eyebrow{color:var(--amber-deep)}
+  .gate-card h2{font-family:"Unbounded";font-weight:800;font-size:26px;line-height:1.12;margin:10px 0 8px;color:var(--navy)}
+  .gate-card p{color:var(--muted);font-size:14.5px;margin-bottom:22px;line-height:1.45}
+  .gate-card input{width:100%;font-family:"Golos Text";font-size:16px;border:1.5px solid var(--line);border-radius:12px;padding:15px 16px;background:#fbfcfe;text-align:center;margin-bottom:14px}
+  .gate-card input:focus{outline:none;border-color:var(--navy-soft);background:#fff}
+  .gate-card .btn{width:100%}
+  .gate-teacher{margin-top:20px;font-size:13px;color:var(--muted)}
+  .gate-teacher a{color:var(--navy-soft);font-weight:600;cursor:pointer;text-decoration:underline}
+  .whoami{display:inline-flex;align-items:center;gap:8px;background:#eef3f9;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:16px}
+  .whoami .d{width:8px;height:8px;border-radius:50%;background:var(--green)}
+
+  /* ---- done screen ---- */
+  .done{text-align:center;padding:24px 6px}
+  .done .ic{font-size:54px;line-height:1}
+  .done h3{font-family:"Unbounded";font-weight:800;font-size:24px;color:var(--navy);margin:12px 0 6px}
+  .done p{color:var(--muted);font-size:15px}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="eyebrow">Введение в искусственный интеллект</div>
+    <h2>Добро пожаловать!</h2>
+    <p>Введите фамилию и имя, чтобы пройти задания по лекции и в конце отправить ответы преподавателю.</p>
+    <input type="text" id="gateName" placeholder="Фамилия и имя" autocomplete="off">
+    <button class="btn primary" id="gateGo">Начать →</button>
+    <div class="gate-teacher">Преподаватель? <a id="gateTeacher">Открыть результаты</a></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="head">
+    <div class="eyebrow">Технологии ИИ в управлении бизнесом</div>
+    <h1>Введение в искусственный интеллект</h1>
+    <p>Интерактив к лекции: проверь понимание, потренируй классификацию задач и оставь обратную связь.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-tab="quiz"><span class="n">01</span> Викторина</button>
+    <button data-tab="sort"><span class="n">02</span> Сортировка задач</button>
+    <button data-tab="dikw"><span class="n">03</span> Свой пример DIKW</button>
+    <button data-tab="fb"><span class="n">04</span> Отзыв и отправка</button>
+    <button data-tab="dash" id="tabDash" style="display:none"><span class="n">★</span> Результаты</button>
+  </nav>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="panel show" id="quiz">
+    <div class="card" id="quizCard">
+      <div class="section-title"><span class="dot"></span> Проверка понимания</div>
+      <div class="qbar"><i id="qprog"></i></div>
+      <div class="qmeta"><span>Вопрос <b id="qnum">1</b> из <b id="qtot">0</b></span><span>Верно: <b id="qscore">0</b></span></div>
+      <div class="question" id="qtext"></div>
+      <div class="opts" id="qopts"></div>
+      <div class="explain" id="qexplain"></div>
+      <div class="row-end"><button class="btn primary" id="qnext" disabled>Далее →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ SORT ============ -->
+  <section class="panel" id="sort">
+    <div class="card">
+      <div class="section-title"><span class="dot"></span> К какому типу обучения относится задача?</div>
+      <p class="lead" style="margin:10px 0 16px">Нажми на пример, затем на колонку нужного типа. Чтобы вернуть пример — нажми на него внутри колонки. Когда всё распределишь — проверь.</p>
+      <div class="pool" id="pool"></div>
+      <div class="zones">
+        <div class="zone" data-cat="sup"><h5>С учителем</h5><div class="hint">размеченные данные</div><div class="drop" id="z-sup"></div></div>
+        <div class="zone" data-cat="uns"><h5>Без учителя</h5><div class="hint">скрытые закономерности</div><div class="drop" id="z-uns"></div></div>
+        <div class="zone" data-cat="rl"><h5>С подкреплением</h5><div class="hint">награды и штрафы</div><div class="drop" id="z-rl"></div></div>
+      </div>
+      <div class="explain" id="sortMsg"></div>
+      <div class="row-end" style="gap:10px">
+        <button class="btn ghost" id="sortReset">Сбросить</button>
+        <button class="btn amber" id="sortCheck">Проверить</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DIKW ============ -->
+  <section class="panel" id="dikw">
+    <div class="card">
+      <div class="section-title"><span class="dot"></span> Свой пример: пирамида DIKW</div>
+      <p class="lead" style="margin:10px 0 12px">Выберите любую сферу и пройдите путь снизу вверх: Данные → Информация → Знание → Мудрость. Покажите, как «сырые» цифры превращаются в решение.</p>
+
+      <details class="example">
+        <summary>Посмотреть пример (кофейня)</summary>
+        <div class="ex-body">
+          <p><b>Данные:</b> 120, 85, 60 — продано чашек кофе в пн, сб и вс.</p>
+          <p><b>Информация:</b> по выходным продаётся больше капучино, чем в будни.</p>
+          <p><b>Знание:</b> рост даёт сегмент «семьи с детьми», которые приходят в выходные.</p>
+          <p><b>Мудрость:</b> на выходные закупаем больше молока и ставим второго бариста.</p>
+        </div>
+      </details>
+
+      <label class="fld">Сфера / контекст</label>
+      <input type="text" id="dCtx" placeholder="Например: кофейня, интернет-магазин, ваша работа">
+
+      <div class="dikw-step" style="border-left-color:#cfe3d4">
+        <div class="dikw-lbl"><span class="num">1</span> Данные <em>отдельные факты, цифры, измерения</em></div>
+        <textarea id="dData" placeholder="Сырые факты и числа без контекста…"></textarea>
+      </div>
+      <div class="dikw-step" style="border-left-color:#a9d0b4">
+        <div class="dikw-lbl"><span class="num">2</span> Информация <em>данные в контексте, упорядоченные</em></div>
+        <textarea id="dInfo" placeholder="Что эти данные означают, если их связать…"></textarea>
+      </div>
+      <div class="dikw-step" style="border-left-color:#6fb38e">
+        <div class="dikw-lbl"><span class="num">3</span> Знание <em>закономерность, объяснение «почему»</em></div>
+        <textarea id="dKnow" placeholder="Какая закономерность стоит за информацией…"></textarea>
+      </div>
+      <div class="dikw-step" style="border-left-color:#2e8b6e">
+        <div class="dikw-lbl"><span class="num">4</span> Мудрость <em>прикладное решение, что делать</em></div>
+        <textarea id="dWis" placeholder="Какое решение принять на основе знания…"></textarea>
+      </div>
+
+      <div class="explain" id="dikwMsg"></div>
+      <div class="row-end" style="gap:10px">
+        <button class="btn ghost" id="dikwClear">Очистить</button>
+        <button class="btn amber" id="dikwNext">Готово → к отправке</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEEDBACK ============ -->
+  <section class="panel" id="fb">
+    <div class="card">
+      <div class="section-title"><span class="dot"></span> Обратная связь по лекции</div>
+      <p class="lead" style="margin:10px 0 14px">Последний шаг: оцените лекцию и отправьте всё преподавателю.</p>
+      <div class="whoami"><span class="d"></span><span id="whoamiName"></span></div>
+
+      <label class="fld">Насколько понятной была лекция? <span class="req">*</span></label>
+      <div class="stars" id="stars">
+        <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span><span class="star" data-v="3">★</span><span class="star" data-v="4">★</span><span class="star" data-v="5">★</span>
+      </div>
+
+      <label class="fld">Самая полезная тема</label>
+      <select id="fTopic">
+        <option value="">— выбрать —</option>
+        <option>Основы и виды ИИ (ANI / AGI / ASI)</option>
+        <option>Машинное обучение и его типы</option>
+        <option>Нейросети и генеративный ИИ</option>
+        <option>Чат-бот → ассистент → агент</option>
+        <option>ИИ в управлении бизнесом</option>
+        <option>Промптинг (Zero / Few-shot, CoT)</option>
+        <option>Риски и этика ИИ</option>
+      </select>
+
+      <label class="fld">Где вы уже используете ИИ в работе или учёбе?</label>
+      <textarea id="fUse" placeholder="Например: пишу черновики писем, ищу источники, делаю сводки по отчётам…"></textarea>
+
+      <label class="fld">Какой процесс в вашей сфере хотели бы автоматизировать?</label>
+      <textarea id="fAuto" placeholder="Например: обработку типовых обращений клиентов…"></textarea>
+
+      <label class="fld">Что вызывает опасения или осталось непонятным?</label>
+      <textarea id="fWorry" placeholder="Вопрос, сомнение или тема, которую стоит разобрать подробнее…"></textarea>
+
+      <div class="row-end"><button class="btn amber" id="fSend">Отправить преподавателю →</button></div>
+      <p class="note" id="fModeNote"></p>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="panel" id="dash">
+    <div class="card">
+      <div class="section-title"><span class="dot"></span> Результаты класса</div>
+      <div id="dashMode" style="margin-top:12px"></div>
+      <div id="dashBody"></div>
+      <div class="dash-actions">
+        <button class="btn ghost" id="dashRefresh">↻ Обновить</button>
+        <button class="btn ghost" id="dashClear" style="color:var(--red);border-color:#f0cccc">Очистить все ответы</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== НАСТРОЙКА GOOGLE-ТАБЛИЦЫ ===================== */
+/* Вставьте между кавычками ссылку вашего веб-приложения Google Apps Script
+   (Развернуть → Веб-приложение → URL). Пошаговая инструкция — в сообщении к файлу.
+   Пока строка не заменена, ответы собираются только во вкладке «Результаты класса». */
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNo6JjNf0VIbqWIhmfIyFROChd1iWgO981O3Cjv7wV_G3LInK27tfZ4vPk9tcPzNs8/exec';
+
+/* ===================== DATA ===================== */
+const QUESTIONS = [
+  {q:'Эффект «матрёшки»: что во что вложено?',
+   o:['ИИ → Машинное обучение → Нейросети → Генеративные модели','Машинное обучение → ИИ → Нейросети → Генеративные модели','Нейросети → ИИ → Машинное обучение → Генеративные модели','Генеративные модели → ИИ → Машинное обучение → Нейросети'],
+   c:0,e:'ИИ — самое широкое понятие. ML — его подраздел, внутри ML — нейросети, а генеративные модели — частный случай нейросетей.',t:'Виды и структура ИИ'},
+  {q:'Какая форма ИИ реально существует сегодня?',
+   o:['Узкий ИИ (ANI)','Общий ИИ (AGI)','Суперинтеллект (ASI)','Все три уже существуют'],
+   c:0,e:'Сегодня существует только узкий ИИ (ChatGPT, DeepSeek). AGI — гипотеза, ASI — теоретический горизонт.',t:'Спектр интеллекта'},
+  {q:'«Система анализирует тысячи писем и сама выявляет признаки спама, адаптируясь к новым угрозам». О чём речь?',
+   o:['Классическое программирование (жёсткие правила)','Машинное обучение (паттерны)','Экспертная система 1980-х','Чат-бот по ключевым словам'],
+   c:1,e:'Это сдвиг парадигмы — от правил к паттернам: алгоритм учится на данных без заранее прописанных условий.',t:'Правила против паттернов'},
+  {q:'Классификация писем «спам / не спам» на размеченных данных — это…',
+   o:['Обучение с учителем','Обучение без учителя','Обучение с подкреплением','Глубокое обучение'],
+   c:0,e:'Есть «правильные ответы» (метки) → обучение с учителем (supervised).',t:'Типы машинного обучения'},
+  {q:'Сегментация клиентов без заранее заданных меток — это…',
+   o:['Обучение с учителем','Обучение без учителя','Обучение с подкреплением','One-Shot Prompting'],
+   c:1,e:'Поиск скрытых закономерностей в неразмеченных данных → обучение без учителя (unsupervised).',t:'Типы машинного обучения'},
+  {q:'Кто «самостоятельно планирует задачи и обращается к инструментам, сайтам, API»?',
+   o:['Чат-бот','ИИ-ассистент','ИИ-агент','Реляционная БД'],
+   c:2,e:'Уровни автономности: чат-бот (скрипты) → ассистент (гибкий диалог) → агент (планирует и действует сам).',t:'Чат-бот → ассистент → агент'},
+  {q:'Какая архитектура лежит в основе GPT, BERT и других больших языковых моделей (LLM)?',
+   o:['Трансформеры (Transformers)','Свёрточные сети (CNN)','Экспертные системы','Реляционные базы данных'],
+   c:0,e:'Трансформеры — архитектура для обработки последовательностей, фундамент LLM.',t:'Нейросети и глубокое обучение'},
+  {q:'Правильный порядок пирамиды DIKW (снизу вверх):',
+   o:['Данные → Информация → Знание → Мудрость','Информация → Данные → Знание → Мудрость','Знание → Данные → Информация → Мудрость','Мудрость → Знание → Информация → Данные'],
+   c:0,e:'Data → Information → Knowledge → Wisdom: от «сырых» фактов к прикладной мудрости. Выше по пирамиде — выше риск/ценность решения.',t:'Пирамида DIKW'},
+  {q:'Запрос «Реши задачу шаг за шагом, объясняя каждый этап» — это приём…',
+   o:['Zero-Shot','Few-Shot','Chain-of-Thought (CoT)','One-Shot'],
+   c:2,e:'CoT — «рассуждение вслух» по шагам, повышает качество ответа на сложных задачах.',t:'Промптинг'},
+  {q:'ИИ отказал в кредите, потому что обучался на данных со стереотипами. Какой это риск?',
+   o:['Предвзятость (bias)','Дипфейки','Утечка персональных данных','Проблема ответственности'],
+   c:0,e:'Предвзятость: ИИ воспроизводит дискриминацию, заложенную в обучающих данных (наём, кредиты, медицина).',t:'Риски и этика'},
+  {q:'В каком году на Дартмутской конференции официально появился термин «искусственный интеллект»?',
+   o:['1950','1956','1997','2012'],
+   c:1,e:'1956 — Дартмутская конференция, Джон Маккарти ввёл термин. 1950 — тест Тьюринга, 1997 — Deep Blue, 2012 — AlexNet.',t:'История ИИ'}
+];
+
+const EXAMPLES = [
+  {id:'e1',label:'Письма: спам / не спам (размечено)',cat:'sup'},
+  {id:'e2',label:'Сегментация клиентов магазина',cat:'uns'},
+  {id:'e3',label:'Шахматы: награда за выигрыш партии',cat:'rl'},
+  {id:'e4',label:'Прогноз цены квартиры по размеченным сделкам',cat:'sup'},
+  {id:'e5',label:'Группировка новостей по темам без меток',cat:'uns'},
+  {id:'e6',label:'Робот учится ходить методом проб и ошибок',cat:'rl'},
+  {id:'e7',label:'Распознавание кошек/собак по подписанным фото',cat:'sup'},
+  {id:'e8',label:'Поиск аномалий в транзакциях без разметки',cat:'uns'},
+  {id:'e9',label:'ИИ осваивает игру Go, получая очки за ходы',cat:'rl'}
+];
+
+/* ===================== TABS ===================== */
+document.querySelectorAll('nav.tabs button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+    b.classList.add('active');
+    document.getElementById(b.dataset.tab).classList.add('show');
+    if(b.dataset.tab==='dash') renderDash();
+  });
+});
+function goTab(name){document.querySelector('nav.tabs button[data-tab="'+name+'"]').click();}
+
+/* ===================== START GATE / СОСТОЯНИЕ ===================== */
+const student={name:''};
+const results={quiz:null,sort:null}; // заполняются по ходу прохождения
+function enterApp(){
+  document.getElementById('gate').classList.add('hide');
+}
+document.getElementById('gateGo').addEventListener('click',()=>{
+  const v=document.getElementById('gateName').value.trim();
+  if(v.length<2){
+    const inp=document.getElementById('gateName');
+    inp.style.borderColor='var(--red)'; inp.focus();
+    inp.placeholder='Сначала введите фамилию и имя';
+    return;
+  }
+  student.name=v;
+  document.getElementById('whoamiName').textContent='Вы вошли как: '+v;
+  enterApp();
+});
+document.getElementById('gateName').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('gateGo').click();});
+document.getElementById('gateTeacher').addEventListener('click',()=>{
+  document.getElementById('tabDash').style.display='';
+  enterApp();
+  goTab('dash');
+});
+
+/* ===================== QUIZ ===================== */
+let qi=0, qscore=0, qlocked=false, wrongTopics=[];
+const $=(id)=>document.getElementById(id);
+$('qtot').textContent=QUESTIONS.length;
+function renderQ(){
+  qlocked=false;
+  const item=QUESTIONS[qi];
+  $('qnum').textContent=qi+1;
+  $('qscore').textContent=qscore;
+  $('qprog').style.width=((qi)/QUESTIONS.length*100)+'%';
+  $('qtext').textContent=item.q;
+  const ex=$('qexplain'); ex.className='explain'; ex.innerHTML='';
+  const next=$('qnext'); next.disabled=true; next.textContent=(qi===QUESTIONS.length-1)?'Результат':'Далее →';
+  const wrap=$('qopts'); wrap.innerHTML='';
+  const letters=['А','Б','В','Г'];
+  item.o.forEach((opt,idx)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.innerHTML='<span class="mk">'+letters[idx]+'</span><span>'+opt+'</span>';
+    b.addEventListener('click',()=>answer(idx,b));
+    wrap.appendChild(b);
+  });
+}
+function answer(idx,btn){
+  if(qlocked) return; qlocked=true;
+  const item=QUESTIONS[qi];
+  const opts=document.querySelectorAll('#qopts .opt');
+  opts.forEach((o,i)=>{o.classList.add('locked'); if(i===item.c)o.classList.add('correct');});
+  if(idx===item.c){qscore++;}
+  else{btn.classList.add('wrong'); if(!wrongTopics.includes(item.t))wrongTopics.push(item.t);}
+  $('qscore').textContent=qscore;
+  const ex=$('qexplain'); ex.innerHTML='<b>Пояснение.</b> '+item.e; ex.classList.add('show');
+  $('qnext').disabled=false;
+}
+$('qnext').addEventListener('click',()=>{
+  if(qi<QUESTIONS.length-1){qi++;renderQ();}
+  else showResult();
+});
+function showResult(){
+  $('qprog').style.width='100%';
+  const pct=Math.round(qscore/QUESTIONS.length*100);
+  results.quiz=qscore+'/'+QUESTIONS.length;
+  let msg,emoji;
+  if(pct>=85){msg='Отличный результат — материал усвоен!';emoji='🎯';}
+  else if(pct>=60){msg='Хорошо! Несколько тем стоит закрепить.';emoji='👍';}
+  else{msg='Есть что повторить — это нормально. Пройдите ещё раз.';emoji='📚';}
+  let review='';
+  if(wrongTopics.length){
+    review='<div class="review"><h4>Темы для повторения</h4>'+wrongTopics.map(t=>'<span class="chip">'+t+'</span>').join('')+'</div>';
+  }else{
+    review='<div class="review"><span class="chip ok">Все темы — без ошибок ✓</span></div>';
+  }
+  $('quizCard').innerHTML=
+    '<div class="section-title"><span class="dot"></span> Ваш результат</div>'+
+    '<div class="scorewrap"><div class="scorebig">'+qscore+'<span>/'+QUESTIONS.length+'</span></div>'+
+    '<div class="scoremsg">'+emoji+' '+msg+'</div>'+
+    '<div class="lead">'+pct+'% правильных ответов</div></div>'+
+    review+
+    '<div class="row-end" style="gap:10px"><button class="btn ghost" id="qRetry">Пройти заново</button>'+
+    '<button class="btn amber" id="qToSort">Дальше: сортировка →</button></div>';
+  $('qRetry').addEventListener('click',()=>location.reload());
+  $('qToSort').addEventListener('click',()=>goTab('sort'));
+}
+renderQ();
+
+/* ===================== SORT GAME ===================== */
+let picked=null, placement={};
+function renderPool(){
+  const pool=$('pool'); pool.innerHTML='';
+  ['z-sup','z-uns','z-rl'].forEach(z=>$(z).innerHTML='');
+  EXAMPLES.forEach(e=>{
+    const node=mkEx(e);
+    if(placement[e.id]) $('z-'+placement[e.id]).appendChild(node);
+    else pool.appendChild(node);
+  });
+}
+function mkEx(e){
+  const d=document.createElement('div');
+  d.className='ex'; d.textContent=e.label; d.dataset.id=e.id;
+  if(picked===e.id) d.classList.add('picked');
+  d.addEventListener('click',(ev)=>{
+    ev.stopPropagation();
+    if(placement[e.id]){ // already placed -> return to pool
+      delete placement[e.id]; picked=null; clearTargets(); renderPool(); return;
+    }
+    picked=(picked===e.id)?null:e.id;
+    clearTargets();
+    if(picked) document.querySelectorAll('.zone').forEach(z=>z.classList.add('target'));
+    renderPool();
+  });
+  return d;
+}
+function clearTargets(){document.querySelectorAll('.zone').forEach(z=>z.classList.remove('target'));}
+document.querySelectorAll('.zone').forEach(z=>{
+  z.addEventListener('click',()=>{
+    if(!picked) return;
+    placement[picked]=z.dataset.cat; picked=null; clearTargets(); renderPool();
+    $('sortMsg').classList.remove('show');
+  });
+});
+$('sortCheck').addEventListener('click',()=>{
+  const placedCount=Object.keys(placement).length;
+  if(placedCount<EXAMPLES.length){
+    flashMsg('Распределите все примеры — осталось '+(EXAMPLES.length-placedCount)+'.',false);return;
+  }
+  let ok=0;
+  EXAMPLES.forEach(e=>{
+    const nodes=document.querySelectorAll('.ex[data-id="'+e.id+'"]');
+    nodes.forEach(n=>{
+      if(placement[e.id]===e.cat){n.classList.add('ok');ok++;}
+      else n.classList.add('bad');
+    });
+  });
+  const msg=$('sortMsg'); msg.className='explain show';
+  msg.innerHTML='<b>Верно '+ok+' из '+EXAMPLES.length+'.</b> Подсказка: «правильные ответы» в данных → <b>с учителем</b>; нет меток, ищем структуру → <b>без учителя</b>; награды и штрафы за действия → <b>с подкреплением</b>.'+
+    '<div class="row-end" style="margin-top:14px"><button class="btn amber" id="sortToDikw">Дальше: свой пример DIKW →</button></div>';
+  results.sort=ok+'/'+EXAMPLES.length;
+  $('sortToDikw').addEventListener('click',()=>goTab('dikw'));
+});
+$('sortReset').addEventListener('click',()=>{
+  placement={};picked=null;clearTargets();
+  $('sortMsg').classList.remove('show');renderPool();
+});
+function flashMsg(text,good){
+  const msg=$('sortMsg'); msg.className='explain show';
+  msg.innerHTML=text;
+}
+renderPool();
+
+/* ===================== DIKW EXERCISE ===================== */
+$('dikwNext').addEventListener('click',()=>{
+  const data=$('dData').value.trim(), wis=$('dWis').value.trim();
+  const msg=$('dikwMsg');
+  if(!data && !wis){
+    msg.className='explain show';
+    msg.innerHTML='Заполните хотя бы нижнюю ступень (<b>Данные</b>) и верхнюю (<b>Мудрость</b>) — так виден весь путь от факта к решению. Можно продолжить и так, пример сохранится.';
+  }
+  goTab('fb');
+});
+$('dikwClear').addEventListener('click',()=>{
+  ['dCtx','dData','dInfo','dKnow','dWis'].forEach(id=>$(id).value='');
+  $('dikwMsg').classList.remove('show');
+});
+
+/* ===================== STORAGE LAYER ===================== */
+const SHARED=true;
+let memStore=[];
+const storageOK = (typeof window!=='undefined' && window.storage && typeof window.storage.set==='function');
+async function fbSave(obj){
+  if(!storageOK){memStore.push(obj);return;}
+  const key='fb:'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  try{await window.storage.set(key,JSON.stringify(obj),SHARED);}
+  catch(e){memStore.push(obj);}
+}
+async function fbLoad(){
+  if(!storageOK) return memStore.slice();
+  try{
+    const res=await window.storage.list('fb:',SHARED);
+    let keys=(res&&res.keys)?res.keys:[];
+    keys=keys.map(k=>typeof k==='string'?k:(k&&k.key)?k.key:null).filter(Boolean);
+    const out=[];
+    for(const k of keys){
+      try{const r=await window.storage.get(k,SHARED); if(r&&r.value)out.push(JSON.parse(r.value));}catch(_){}
+    }
+    return out;
+  }catch(e){return memStore.slice();}
+}
+async function fbClear(){
+  if(!storageOK){memStore=[];return;}
+  try{
+    const res=await window.storage.list('fb:',SHARED);
+    let keys=(res&&res.keys)?res.keys:[];
+    keys=keys.map(k=>typeof k==='string'?k:(k&&k.key)?k.key:null).filter(Boolean);
+    for(const k of keys){try{await window.storage.delete(k,SHARED);}catch(_){}}
+  }catch(e){}
+  memStore=[];
+}
+
+/* ===================== FEEDBACK FORM ===================== */
+let rating=0;
+document.querySelectorAll('.star').forEach(s=>{
+  s.addEventListener('click',()=>{rating=+s.dataset.v;paintStars();});
+  s.addEventListener('mouseenter',()=>paintStars(+s.dataset.v));
+});
+$('stars').addEventListener('mouseleave',()=>paintStars());
+function paintStars(hover){
+  const v=hover||rating;
+  document.querySelectorAll('.star').forEach(s=>s.classList.toggle('on',+s.dataset.v<=v));
+}
+const sheetReady = (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.indexOf('ВСТАВЬТЕ')<0);
+$('fModeNote').textContent = sheetReady
+  ? 'Ваши ответы вместе с результатами заданий уходят преподавателю в Google-таблицу.'
+  : 'Google-таблица пока не подключена — ответы сохранятся в разделе «Результаты». Чтобы данные шли преподавателю в таблицу, вставьте ссылку в коде (GOOGLE_SCRIPT_URL).';
+$('fSend').addEventListener('click',async()=>{
+  if(!student.name){toast('Сначала войдите, указав фамилию.');return;}
+  if(!rating){toast('Поставьте оценку понятности (★).');return;}
+  const rec={
+    name:student.name,
+    rating:rating,
+    quiz:results.quiz||'не пройдена',
+    sort:results.sort||'не пройдена',
+    dikwCtx:$('dCtx').value.trim(),
+    dikwData:$('dData').value.trim(),
+    dikwInfo:$('dInfo').value.trim(),
+    dikwKnow:$('dKnow').value.trim(),
+    dikwWis:$('dWis').value.trim(),
+    topic:$('fTopic').value||'',
+    use:$('fUse').value.trim(),
+    auto:$('fAuto').value.trim(),
+    worry:$('fWorry').value.trim(),
+    ts:Date.now()
+  };
+  $('fSend').disabled=true;
+  await fbSave(rec);        // локальная копия для раздела «Результаты»
+  await sendToSheet(rec);   // отправка преподавателю в Google-таблицу
+  showDone(rec);
+});
+function showDone(rec){
+  $('fb').querySelector('.card').innerHTML=
+    '<div class="done">'+
+    '<div class="ic">✅</div>'+
+    '<h3>Отправлено преподавателю</h3>'+
+    '<p>Спасибо, '+escapeHtml(rec.name)+'! Ваши ответы приняты.<br>'+
+    'Викторина: <b>'+escapeHtml(rec.quiz)+'</b> · Сортировка: <b>'+escapeHtml(rec.sort)+'</b> · Оценка: <b>'+rec.rating+' ★</b></p>'+
+    '<div class="row-end" style="justify-content:center;margin-top:20px"><button class="btn ghost" onclick="location.reload()">Пройти заново</button></div>'+
+    '</div>';
+}
+async function sendToSheet(rec){
+  if(!sheetReady) return;
+  try{
+    await fetch(GOOGLE_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(rec)
+    });
+  }catch(e){/* режим no-cors: ответ не читается, но данные уходят в таблицу */}
+}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ===================== DASHBOARD ===================== */
+async function renderDash(){
+  const mode=$('dashMode');
+  mode.innerHTML = storageOK
+    ? '<span class="modebadge live">● Совместный сбор активен</span>'
+    : '<span class="modebadge local">● Демо-режим (только это устройство)</span>';
+  const body=$('dashBody');
+  body.innerHTML='<div class="empty">Загрузка…</div>';
+  const data=await fbLoad();
+  if(!data.length){body.innerHTML='<div class="empty">Пока нет ответов. Когда студенты пройдут задания и нажмут «Отправить преподавателю» — данные появятся здесь.</div>';return;}
+
+  const n=data.length;
+  const avg=(data.reduce((s,d)=>s+(d.rating||0),0)/n).toFixed(1);
+  const dist=[0,0,0,0,0];
+  data.forEach(d=>{if(d.rating>=1&&d.rating<=5)dist[d.rating-1]++;});
+  // topic counts
+  const topics={};
+  data.forEach(d=>{if(d.topic){topics[d.topic]=(topics[d.topic]||0)+1;}});
+
+  let html='<div class="stat-grid">'+
+    '<div class="stat"><div class="big">'+n+'</div><div class="lbl">ответов</div></div>'+
+    '<div class="stat"><div class="big">'+avg+' <span>/ 5</span></div><div class="lbl">понятность</div></div>'+
+    '<div class="stat"><div class="big">'+Object.keys(topics).length+'</div><div class="lbl">тем отмечено</div></div>'+
+    '</div>';
+
+  html+='<div class="subhead">Распределение оценок</div>';
+  for(let r=5;r>=1;r--){
+    const c=dist[r-1];const pc=n?Math.round(c/n*100):0;
+    html+='<div class="barline"><span class="k">'+r+' ★</span><span class="t"><i style="width:'+pc+'%"></i></span><span class="v">'+c+'</span></div>';
+  }
+
+  if(Object.keys(topics).length){
+    html+='<div class="subhead">Самые полезные темы</div>';
+    const maxT=Math.max(...Object.values(topics));
+    Object.entries(topics).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+      html+='<div class="barline"><span class="k" style="flex-basis:200px">'+k+'</span><span class="t"><i style="width:'+Math.round(v/maxT*100)+'%"></i></span><span class="v">'+v+'</span></div>';
+    });
+  }
+
+  html+='<div class="subhead">Ответившие ('+n+')</div>';
+  data.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).forEach(d=>{
+    const extra=[];
+    if(d.quiz) extra.push('викт. '+escapeHtml(d.quiz));
+    if(d.sort) extra.push('сорт. '+escapeHtml(d.sort));
+    const sub=[d.topic?escapeHtml(d.topic):'',extra.join(' · ')].filter(Boolean).join(' · ');
+    html+='<div class="resp" style="display:flex;justify-content:space-between;align-items:center;gap:10px;border-left-color:var(--amber)">'+
+      '<span><b>'+escapeHtml(d.name||'без имени')+'</b>'+(sub?'<br><span style="color:var(--muted);font-size:12px">'+sub+'</span>':'')+'</span>'+
+      '<b style="color:var(--amber-deep);white-space:nowrap">'+(d.rating||'–')+' ★</b></div>';
+  });
+
+  const dikwItems=data.filter(d=>d.dikwData||d.dikwInfo||d.dikwKnow||d.dikwWis);
+  if(dikwItems.length){
+    html+='<div class="subhead">Примеры DIKW ('+dikwItems.length+')</div>';
+    dikwItems.forEach(d=>{
+      html+='<div class="resp"><div class="meta">'+escapeHtml(d.name||'без имени')+(d.dikwCtx?' · '+escapeHtml(d.dikwCtx):'')+'</div>'+
+        '<b>Данные:</b> '+escapeHtml(d.dikwData||'—')+'<br>'+
+        '<b>Информация:</b> '+escapeHtml(d.dikwInfo||'—')+'<br>'+
+        '<b>Знание:</b> '+escapeHtml(d.dikwKnow||'—')+'<br>'+
+        '<b>Мудрость:</b> '+escapeHtml(d.dikwWis||'—')+'</div>';
+    });
+  }
+
+  const openBlock=(title,field)=>{
+    const items=data.filter(d=>d[field]);
+    if(!items.length) return '';
+    return '<div class="subhead">'+title+' ('+items.length+')</div>'+
+      items.map(d=>'<div class="resp"><div class="meta">'+escapeHtml(d.name||'без имени')+'</div>'+escapeHtml(d[field])+'</div>').join('');
+  };
+  html+=openBlock('Где уже используют ИИ','use');
+  html+=openBlock('Что хотят автоматизировать','auto');
+  html+=openBlock('Опасения и вопросы','worry');
+
+  body.innerHTML=html;
+}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+$('dashRefresh').addEventListener('click',renderDash);
+$('dashClear').addEventListener('click',async()=>{
+  if(!confirm('Удалить все собранные ответы? Действие необратимо.'))return;
+  await fbClear();renderDash();toast('Ответы очищены.');
+});
+</script>
+</body>
+</html>
